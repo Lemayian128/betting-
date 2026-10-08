@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MatchCenter — Live Sports Analytics</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --surface: #131a23;
+    --surface-2: #1b2430;
+    --border: #24303f;
+    --text: #e8eef5;
+    --muted: #8296ab;
+    --accent: #22d3a6;
+    --accent-dim: #16a37e;
+    --home: #3b82f6;
+    --away: #f97316;
+    --danger: #ef4444;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 40px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(11, 15, 20, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    display: grid;
+    place-items: center;
+    font-size: 0.95rem;
+    color: #04150f;
+    font-weight: 800;
+  }
+
+  .live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .clock {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* ---------- Layout ---------- */
+  .container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .card + .card { margin-top: 20px; }
+
+  .card-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 0 20px;
+  }
+
+  .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .team-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: #fff;
+  }
+
+  .team-badge.home { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+  .team-badge.away { background: linear-gradient(135deg, #f97316, #c2410c); }
+
+  .team-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .team-record {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .score {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-variant-numeric: tabular-nums;
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .score .sep { color: var(--muted); font-size: 1.8rem; }
+
+  .match-meta {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* ---------- Win Probability Bar ---------- */
+  .prob-wrap { margin-top: 4px; }
+
+  .prob-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .prob-labels .home { color: var(--home); }
+  .prob-labels .away { color: var(--away); }
+
+  .prob-bar {
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    display: flex;
+    background: var(--surface-2);
+  }
+
+  .prob-fill-home {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .prob-fill-away {
+    background: linear-gradient(90deg, #fb923c, #f97316);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .prob-note {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ---------- Stat Bars ---------- */
+  .stat-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .stat-row:last-child { margin-bottom: 0; }
+
+  .stat-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+
+  .stat-val.home { text-align: right; color: var(--home); }
+  .stat-val.away { text-align: left; color: var(--away); }
+
+  .stat-track {
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--surface-2);
+  }
+
+  .stat-track .home-bar {
+    background: var(--home);
+    transition: width 0.5s ease;
+  }
+
+  .stat-track .away-bar {
+    background: var(--away);
+    transition: width 0.5s ease;
+  }
+
+  .stat-name {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-top: -8px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- Event Timeline ---------- */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .timeline::-webkit-scrollbar { width: 6px; }
+  .timeline::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .event {
+    display: grid;
+    grid-template-columns: 42px 26px 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    animation: slideIn 0.35s ease;
+  }
+
+  .event:hover { background: var(--surface-2); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .event-minute {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .event-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    background: var(--surface-2);
+  }
+
+  .event-icon.goal { background: rgba(34, 211, 166, 0.15); }
+  .event-icon.card { background: rgba(250, 204, 21, 0.15); }
+  .event-icon.sub { background: rgba(139, 92, 246, 0.15); }
+  .event-icon.chance { background: rgba(59, 130, 246, 0.15); }
+
+  .event-text { color: var(--text); }
+  .event-text strong { font-weight: 600; }
+  .event-team {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: 6px;
+  }
+
+  /* ---------- Possession Donut ---------- */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .donut {
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: conic-gradient(
+      var(--home) 0deg var(--home-deg, 200deg),
+      var(--away) var(--home-deg, 200deg) 360deg
+    );
+    display: grid;
+    place-items: center;
+    position: relative;
+    transition: background 0.6s ease;
+  }
+
+  .donut::after {
+    content: '';
+    position: absolute;
+    inset: 13px;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+
+  .donut-center {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .donut-center .num {
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .donut-center .lbl {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  .legend { display: flex; flex-direction: column; gap: 10px; }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  .legend-swatch.home { background: var(--home); }
+  .legend-swatch.away { background: var(--away); }
+
+  .legend-val {
+    margin-left: auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  /* ---------- Footer note ---------- */
+  .disclaimer {
+    max-width: 1180px;
+    margin: 24px auto 0;
+    padding: 0 24px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">M</div>
+    MatchCenter
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <span class="live-pill"><span class="live-dot"></span>Live</span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="grid">
+
+    <!-- LEFT COLUMN -->
+    <div>
+      <!-- Scoreboard + Probability -->
+      <div class="card">
+        <div class="scoreboard">
+          <div class="team">
+            <div class="team-badge home">ARS</div>
+            <div>
+              <div class="team-name">Arsenal</div>
+              <div class="team-record">14W 5D 4L</div>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <div class="score">
+              <span id="scoreHome">2</span>
+              <span class="sep">–</span>
+              <span id="scoreAway">1</span>
+            </div>
+          </div>
+          <div class="team">
+            <div class="team-badge away">LIV</div>
+            <div>
+              <div class="team-name">Liverpool</div>
+              <div class="team-record">16W 6D 2L</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="match-meta" id="matchMeta">
+          Premier League · Emirates Stadium · 67'
+        </div>
+
+        <!-- Win Probability -->
+        <div class="prob-wrap" style="margin-top:20px;">
+          <div class="prob-labels">
+            <span class="home">Arsenal <span id="probHome">58</span>%</span>
+            <span class="away"><span id="probAway">24</span>% Liverpool</span>
+          </div>
+          <div class="prob-bar">
+            <div class="prob-fill-home" id="probBarHome" style="width:58%"></div>
+            <div class="prob-fill-away" id="probBarAway" style="width:24%"></div>
+          </div>
+          <div class="prob-note">
+            Draw probability: <span id="probDraw">18</span>% · Model updates every 5s
+          </div>
+        </div>
+      </div>
+
+      <!-- Match Stats -->
+      <div class="card">
+        <div class="card-title">Match Statistics</div>
+        <div id="statList"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+      <!-- Possession -->
+      <div class="card">
+        <div class="card-title">Possession</div>
+        <div class="donut-wrap">
+          <div class="donut" id="donut" style="--home-deg:198deg;">
+            <div class="donut-center">
+              <div class="num" id="possHome">55%</div>
+              <div class="lbl">Home</div>
+            </div>
+          </div>
+          <div class="legend" style="flex:1;">
+            <div class="legend-item">
+              <span class="legend-swatch home"></span> Arsenal
+              <span class="legend-val" id="legendHome">55%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch away"></span> Liverpool
+              <span class="legend-val" id="legendAway">45%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card">
+        <div class="card-title">Key Events</div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="disclaimer">
+  Demo interface for UI/UX practice. All data is simulated and generated in-browser.
+</div>
+
+<script>
+/* =========================================================
+   Sports Analytics Dashboard — vanilla JS
+   Simulates live match data with realistic drift patterns
+   ========================================================= */
+
+// ---------- State ----------
+const state = {
+  homeScore: 2,
+  awayScore: 1,
+  minute: 67,
+  possessionHome: 55,
+  probHome: 58,
+  probDraw: 18,
+  probAway: 24,
+  stats: {
+    shots:      { home: 14, away: 9,  label: 'Shots' },
+    onTarget:   { home: 6,  away: 4,  label: 'Shots on Target' },
+    corners:    { home: 7,  away: 3,  label: 'Corners' },
+    fouls:      { home: 8,  away: 11, label: 'Fouls' },
+    passAcc:    { home: 87, away: 82, label: 'Pass Accuracy %', isPct: true },
+    xG:         { home: 1.84, away: 1.12, label: 'Expected Goals (xG)', decimals: 2 }
+  }
+};
+
+// Pool of realistic event templates
+const eventPool = [
+  { icon: '⚽', type: 'goal',   text: '<strong>GOAL!</strong> Clinical finish from inside the box' },
+  { icon: '🟨', type: 'card',   text: 'Yellow card for a tactical foul' },
+  { icon: '🔄', type: 'sub',    text: 'Substitution — fresh legs introduced' },
+  { icon: '🎯', type: 'chance', text: 'Big chance! Shot saved by the keeper' },
+  { icon: '📐', type: 'chance', text: 'Corner won after a deflected cross' },
+  { icon: '🧤', type: 'chance', text: 'Important save low to the left' },
+  { icon: '⚡', type: 'chance', text: 'Counter-attack breaks down at the final pass' }
+];
+
+// ---------- Utilities ----------
+const rand = (min, max) => Math.random() * (max - min) + min;
+const randInt = (min, max) => Math.floor(rand(min, max + 1));
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// ---------- Render: Stats ----------
+function renderStats() {
+  const el = document.getElementById('statList');
+  el.innerHTML = '';
+
+  Object.values(state.stats).forEach(stat => {
+    const total = stat.home + stat.away || 1;
+    const homePct = (stat.home / total) * 100;
+    const awayPct = 100 - homePct;
+
+    const fmt = v => stat.decimals ? v.toFixed(stat.decimals) : Math.round(v);
+
+    const row = document.createElement('div');
+    row.innerHTML = `
+      <div class="stat-row">
+        <div class="stat-val home">${fmt(stat.home)}</div>
+        <div class="stat-track">
+          <div class="home-bar" style="width:${homePct}%"></div>
+          <div class="away-bar" style="width:${awayPct}%"></div>
+        </div>
+        <div class="stat-val away">${fmt(stat.away)}</div>
+      </div>
+      <div class="stat-name">${stat.label}</div>
+    `;
+    el.appendChild(row);
+  });
+}
+
+// ---------- Render: Probability ----------
+function renderProbability() {
+  document.getElementById('probHome').textContent = Math.round(state.probHome);
+  document.getElementById('probDraw').textContent = Math.round(state.probDraw);
+  document.getElementById('probAway').textContent = Math.round(state.probAway);
+
+  document.getElementById('probBarHome').style.width = state.probHome + '%';
+  document.getElementById('probBarAway').style.width = state.probAway + '%';
+}
+
+// ---------- Render: Possession ----------
+function renderPossession() {
+  const home = state.possessionHome;
+  const away = 100 - home;
+  const deg = (home / 100) * 360;
+
+  document.getElementById('donut').style.setProperty('--home-deg', deg + 'deg');
+  document.getElementById('possHome').textContent = Math.round(home) + '%';
+  document.getElementById('legendHome').textContent = Math.round(home) + '%';
+  document.getElementById('legendAway').textContent = Math.round(away) + '%';
+}
+
+// ---------- Render: Timeline ----------
+function addEvent(event, minute, teamName) {
+  const timeline = document.getElementById('timeline');
+
+  const el = document.createElement('div');
+  el.className = 'event';
+  el.innerHTML = `
+    <div class="event-minute">${minute}'</div>
+    <div class="event-icon ${event.type}">${event.icon}</div>
+    <div class="event-text">${event.text}<span class="event-team">${teamName}</span></div>
+  `;
+
+  timeline.prepend(el);
+
+  // Keep timeline bounded
+  while (timeline.children.length > 20) {
+    timeline.removeChild(timeline.lastChild);
+  }
+}
+
+// ---------- Simulation Logic ----------
+function simulateTick() {
+  // Advance clock
+  state.minute = clamp(state.minute + randInt(0, 1), 0, 90);
+  document.getElementById('matchMeta').textContent =
+    `Premier League · Emirates Stadium · ${state.minute}'`;
+
+  // Drift possession slightly, kept near 50-60 range
+  state.possessionHome = clamp(
+    state.possessionHome + rand(-1.5, 1.5),
+    42, 62
+  );
+
+  // Recompute win probability from score + possession
+  const scoreDiff = state.homeScore - state.awayScore;
+  const possFactor = (state.possessionHome - 50) / 10;
+  let rawHome = 40 + scoreDiff * 18 + possFactor * 3;
+  let rawAway = 32 - scoreDiff * 15 - possFactor * 3;
+  let rawDraw = 100 - rawHome - rawAway;
+
+  // Normalize into sensible bounds
+  rawHome = clamp(rawHome, 5, 90);
+  rawAway = clamp(rawAway, 4, 85);
+  rawDraw = clamp(rawDraw, 5, 40);
+
+  const sum = rawHome + rawAway + rawDraw;
+  state.probHome = (rawHome / sum) * 100;
+  state.probAway = (rawAway / sum) * 100;
+  state.probDraw = (rawDraw / sum) * 100;
+
+  // Occasionally generate an event
+  if (Math.random() < 0.45) {
+    const event = eventPool[randInt(0, eventPool.length - 1)];
+    const isHome = Math.random() < 0.55;
+    const teamName = isHome ? 'Arsenal' : 'Liverpool';
+
+    // Update underlying stat counters
+    if (event.type === 'goal') {
+      if (isHome) state.homeScore++; else state.awayScore++;
+      state.stats.shots[isHome ? 'home' : 'away'] += 1;
+      state.stats.onTarget[isHome ? 'home' : 'away'] += 1;
+      state.stats.xG[isHome ? 'home' : 'away'] += rand(0.15, 0.45);
+    }
+    if (event.type === 'chance') {
+      state.stats.shots[isHome ? 'home' : 'away'] += 1;
+      if (Math.random() < 0.5) {
+        state.stats.onTarget[isHome ? 'home' : 'away'] += 1;
+      }
+      state.stats.xG[isHome ? 'home' : 'away'] += rand(0.03, 0.18);
+    }
+    if (event.type === 'card') {
+      state.stats.fouls[isHome ? 'home' : 'away'] += 1;
+    }
+
+    // Passive drift on other stats
+    state.stats.corners.home += Math.random() < 0.12 ? 1 : 0;
+    state.stats.corners.away += Math.random() < 0.08 ? 1 : 0;
+    state.stats.fouls.home   += Math.random() < 0.15 ? 1 : 0;
+    state.stats.fouls.away   += Math.random() < 0.15 ? 1 : 0;
+
+    addEvent(event, state.minute, teamName);
+
+    // Update score display
+    document.getElementById('scoreHome').textContent = state.homeScore;
+    document.getElementById('scoreAway').textContent = state.awayScore;
+  }
+
+  // Re-render everything
+  renderProbability();
+  renderPossession();
+  renderStats();
+}
+
+// ---------- Clock ----------
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-GB', { hour12: false });
+}
+
+// ---------- Init ----------
+function init() {
+  // Seed a few opening events so the timeline isn't empty
+  addEvent(eventPool[0], 12, 'Arsenal');
+  addEvent(eventPool[2], 34, 'Liverpool');
+  addEvent(eventPool[0], 51, 'Arsenal');
+  addEvent(eventPool[3], 62, 'Liverpool');
+
+  renderStats();
+  renderProbability();
+  renderPossession();
+  tickClock();
+
+  setInterval(simulateTick, 5000);
+  setInterval(tickClock, 1000);
+}
+
+init();
+</script>
+</body>
+</html>
